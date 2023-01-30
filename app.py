@@ -11,17 +11,55 @@ df = pd.read_csv(CSV_FILE)
 
 
 @app.route("/", methods=['GET'])
-def start_site():
+def get_daimonds():
     daimonds = load_csv()
     print(daimonds)
     save_csv(daimonds)
     return daimonds
 
+@app.route("/add", methods=['POST'])
+def add_daimond():
+    data = request.get_json()
+    global df
+    last_row = df.tail(1)
+    data["ID"] = int(last_row.ID) + 1
+    df = df.append(data, ignore_index=True)
+    df.dropna(inplace=True)
+    df.to_csv(CSV_FILE, index=False)
+    return data
+
+
+@app.route("/upd_daimond", methods=['PUT'])
+def update_daimond():
+    daimonds = load_csv()
+    data = request.get_json()
+    for i,daim in enumerate(daimonds):
+        if daim["ID"] == data["ID"]:
+            daimonds[i]["carat"] = data["carat"]
+            # print(daimonds[i]["carat"]) 
+            break
+    else:
+        return { "error": "daimond not found" }
+    save_csv(daimonds)
+    return daimonds
+
+
+
+
+@app.route("/del_daimond/<int:id>", methods=['DELETE'])
+def delete_daimond(id):
+    global df 
+    df = df[df.ID != id]
+    df.to_csv(CSV_FILE, index=False)
+    return jsonify({"message": "Daimond deleted"})
+
+# //////////////////calc///////////////////
 @app.route("/max", methods=['GET'])
 def max_price():
     ar = []
     max_price = df['price'].max()
     ar.append(int(max_price))
+    print(ar)
     return ar
 
 @app.route("/avg", methods=['GET'])
@@ -29,6 +67,7 @@ def mean_price():
     ar = []
     mean_price = df['price'].mean()
     ar.append(int(mean_price))
+    
     return ar
 
 @app.route("/ideal", methods=['GET'])
@@ -61,48 +100,6 @@ def color_price_avg():
     ar.append(str(color_price_avg))
     return ar
 
-
-
-@app.route("/add", methods=['POST'])
-def add_daimond():
-    data = request.get_json()
-    global df
-    last_row = df.tail(1)
-    last_id = int(last_row.ID)
-    new_id = last_id + 1
-    data["ID"] = new_id
-    df = df.append(data, ignore_index=True)
-    df.dropna(inplace=True)
-    df.to_csv(CSV_FILE, index=False)
-    return data
-
-
-
-@app.route("/upd_daimond", methods=['PUT'])
-def update_daimond():
-    daimonds = load_csv()
-    data = request.get_json()
-    found = False
-    for i,daim in enumerate(daimonds):
-        if daim["ID"] == data["ID"]:
-            daimonds[i]["carat"] = data["carat"]
-            # print(daimonds[i]["carat"]) 
-            found = True
-            break
-    if found is False:
-        return { "error": "daimond not found" }
-    save_csv(daimonds)
-    return daimonds
-
-
-
-
-@app.route("/del_daimond/<int:id>", methods=['DELETE'])
-def delete_daimond(id):
-    global df 
-    df = df[df.ID != id]
-    df.to_csv(CSV_FILE, index=False)
-    return jsonify({"message": "Daimond deleted"})
 
 
 
